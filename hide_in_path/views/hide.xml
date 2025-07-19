@@ -1,0 +1,15 @@
+<odoo>
+  <data>
+    <template id="hide_price_in_category" inherit_id="website_sale.products_item">
+        <xpath expr="//div[contains(@class, 'product_price')]" position="before">
+            <t t-if="'/shop/category/jcb-repuestos-2' in request.httprequest.path">
+            <style>
+                .product_price {
+                display: none !important;
+                }
+            </style>
+            </t>
+        </xpath>
+    </template>
+  </data>
+</odoo>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+  <template id="external_layout_landscape" inherit_id="web.external_layout">
+    <xpath expr="//div[hasclass('article')]" position="before">
+      <div style="height: 30px;"></div>
+    </xpath>
+  </template>
+</odoo>

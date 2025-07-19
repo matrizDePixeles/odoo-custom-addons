@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- <template id="custom_stock_report_delivery_aggregated_move_lines" inherit_id="stock.stock_report_delivery_aggregated_move_lines">
+        <tr t-foreach="aggregated_lines" t-as="line">
+            <td>
+                <span t-esc="'[DEBUG] Nombre'"/>
+                <span t-esc="aggregated_lines[line]['name']"/>
+                <p t-if="aggregated_lines[line]['description']">
+                    <span t-esc="'[DEBUG] Descripcion'"/>
+                    <span t-esc="aggregated_lines[line]['description'] "/>
+                </p>
+            </td>
+            <td class="text-center" name="move_line_aggregated_qty_done">
+                <span t-esc="aggregated_lines[line]['qty_done']"
+                    t-options="{'widget': 'float', 'decimal_precision': 'Product Unit of Measure'}"/>
+                <span t-esc="aggregated_lines[line]['product_uom']"/>
+            </td>
+        </tr>
+    </template> -->
+
+    <template id="stock_report_delivery_aggregated_move_lines_inherit" inherit_id="report_search.stock_report_delivery_aggregated_move_lines_inherit">
+        <xpath expr="//t[@t-foreach='aggregated_lines' and @t-as='agg']">
+            <t t-foreach="aggregated_lines" t-as="agg">
+                <t t-if="aggregated_lines[agg]['product'].nro_motor and
+                    aggregated_lines[agg]['product'].nro_chasis">
+                    <t t-set="is_motor" t-value="True"/>
+                </t>
+            </t>
+        </xpath>
+        <xpath expr="//t[@t-if='is_motor']" position="replace">
+            <t t-if="is_motor">
+                <tr>
+                    <th colspan="2">
+                        <div class="row small">
+                            <div class="col-auto">
+                                <strong>NRO MOTOR:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>NRO CHASIS:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>MODELO:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>NRO DUA:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>AÑO DEL MODELO:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>COLOR:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>MARCA:</strong>
+                            </div>
+                            <div class="col-auto">
+                                <strong>ITEM DUA:</strong>
+                            </div>
+                        </div>
+                    </th>
+                </tr>
+                <t t-foreach="aggregated_lines" t-as="line">
+                    <tr>
+                        <td class="text-center align-middle" colspan="2">
+                            <div class="row small align-items-center">
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].nro_motor"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].nro_chasis"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].modelo"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].nro_dua"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].anio"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].colores"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].x_marca"/>
+                                </div>
+                                <div class="col-auto">
+                                    <p t-field="aggregated_lines[line]['product'].item_dua"/>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </t>
+            </t>
+        </xpath>
+    </template>
+</odoo>

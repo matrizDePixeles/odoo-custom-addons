@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_deliveryslip_landscape" inherit_id="stock.report_deliveryslip">
+    </template>
+    <record id="action_report_delivery_landscape" model="ir.actions.report">
+        <field name="name">Albarán Formato Horizontal</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">albaran_custom_grouping.report_deliveryslip_landscape</field>
+        <field name="report_file">stock.report_deliveryslip</field>
+        <field name="print_report_name">'Delivery Slip - %s - %s' % (object.partner_id.name or '', object.name)</field>
+        <field name="paperformat_id" ref="albaran_custom_grouping.paperformat_delivery_landscape"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
