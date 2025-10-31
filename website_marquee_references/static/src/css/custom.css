@@ -1,0 +1,25 @@
+.o_marquee_references .marquee-wrapper {
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+
+.o_marquee_references .marquee-content {
+    display: flex;
+    width: max-content;
+    animation: scroll-left 30s linear infinite;
+}
+
+.o_marquee_references .marquee-item {
+    flex: 0 0 auto;
+    padding: 0 2rem;
+}
+
+@keyframes scroll-left {
+    0% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <template id="assets_frontend" name="Marquee Assets" inherit_id="web.assets_frontend">
+            <xpath expr="." position="inside">
+                <link rel="stylesheet" href="/website_marquee_references/static/src/css/custom.css"/>
+            </xpath>
+        </template>
+
+        <template id="s_references_marquee" name="References Marquee" inherit_id="website.s_references">
+            <xpath expr="//section[@class='s_references pt48 pb32']" position="replace">
+                <section class="s_references pt48 pb32 o_marquee_references">
+                    <div class="container">
+                        <h2 style="text-align: center;">Our References</h2>
+                        <p style="text-align: center;">We are in good company.</p>
+                        <div class="marquee-wrapper">
+                            <div class="marquee-content">
+                                <t t-foreach="[1,2,3,4,5,6,1,2,3,4,5,6]" t-as="i">
+                                    <div class="marquee-item">
+                                        <img t-att-src="'/web/image/website.' + ('s_reference_demo_image_' + str(i) if i &lt; 6 else 's_reference_default_image_6')" class="img img-fluid" alt=""/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </xpath>
+        </template>
+
+    </data>
+</odoo>
