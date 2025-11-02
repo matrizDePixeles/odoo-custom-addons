@@ -8,7 +8,7 @@
         </template>
 
         <template id="s_numbers_counter" inherit_id="website.s_numbers">
-            <xpath expr="//span[contains(@class, 's_number')]" position="attributes">
+            <xpath expr="//span" position="attributes">
                 <attribute name="data-animate">true</attribute>
             </xpath>
         </template>
