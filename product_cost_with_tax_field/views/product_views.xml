@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<odoo>
+    <record id="product_cost_with_tax_field" model="ir.ui.view">
+        <field name="name">product.cost.with.tax.field</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <!-- Localizamos el padre de standard_price -->
+            <xpath expr="//div[@name='standard_price_uom']/.." position="inside">
+                <field 
+                    name="x_standard_price_incl_tax"
+                    string="Costo + Impuestos"
+                    widget="monetary"
+                    options="{'currency_field': 'cost_currency_id'}"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>
