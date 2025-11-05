@@ -7,6 +7,29 @@
             </xpath>
         </template>
 
+        <template id="s_numbers_counter_images" inherit_id="website.s_numbers">
+            <xpath expr="//div[@class='row']" position="replace">
+                <div class="row">
+                    <div class="col-lg-3 text-center pt24 pb24">
+                        <span class="s_number display-4">12</span>
+                        <h6>Useful options</h6>
+                    </div>
+                    <div class="col-lg-3 text-center pt24 pb24">
+                        <span class="s_number display-4">45</span>
+                        <h6>Beautiful snippets</h6>
+                    </div>
+                    <div class="col-lg-3 text-center pt24 pb24">
+                        <span class="s_number display-4">8</span>
+                        <h6>Amazing pages</h6>
+                    </div>
+                    <div class="col-lg-3 text-center pt24 pb24">
+                        <span class="s_number display-4">37</span>
+                        <h6>Outstanding images</h6>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+
         <template id="s_numbers_counter" inherit_id="website.s_numbers">
             <xpath expr="//span" position="attributes">
                 <attribute name="data-animate">true</attribute>
