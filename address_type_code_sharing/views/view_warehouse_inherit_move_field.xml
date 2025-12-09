@@ -17,6 +17,7 @@
         <field name="arch" type="xml">
             <field name="pos_config_id" position="after">
                 <field name="pos_invoice_journal_ids" widget="many2many_tags"/>
+                <field name="auto_check_invoice"/>
             </field>
         </field>
     </record>
