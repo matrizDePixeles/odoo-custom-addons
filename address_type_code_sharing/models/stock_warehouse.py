@@ -25,7 +25,7 @@ class StockWarehouse(models.Model):
         compute='_compute_pos_invoice_journal_ids',
         inverse='_inverse_pos_invoice_journal_ids', # <-- FUNCIÓN INVERSA PARA ESCRITURA
         readonly=False, # <-- Debe ser editable en el formulario
-        store=True,     # <-- Almacenamos el ID para evitar problemas al escribir en M2M
+        store=True,      # <-- Almacenamos el ID para evitar problemas al escribir en M2M
     )
 
     auto_check_invoice = fields.Boolean(
@@ -33,9 +33,24 @@ class StockWarehouse(models.Model):
         compute='_compute_auto_check_invoice',
         inverse='_inverse_auto_check_invoice',
         readonly=False, # Permite la edición
-        store=True,     # Almacenable para persistencia
+        store=True,      # Almacenable para persistencia
         help='Si está marcado, las facturas generadas desde el POS asociado se validarán automáticamente.'
     )
+
+    # --- INICIO DE ADICIÓN PARA default_partner_id ---
+    
+    # Nuevo campo COMPUTADO y ALMACENABLE para el cliente predeterminado
+    default_partner_id = fields.Many2one(
+        'res.partner',
+        string='Cliente Predeterminado (POS)',
+        compute='_compute_default_partner_id',
+        inverse='_inverse_default_partner_id', # <-- FUNCIÓN INVERSA PARA ESCRITURA
+        readonly=False,
+        store=True,
+        help='Establece el cliente predeterminado que se usará en el Punto de Venta asociado.'
+    )
+
+    # --- FIN DE ADICIÓN PARA default_partner_id ---
 
     @api.depends('pos_config_id', 'pos_config_id.invoice_journal_ids') 
     def _compute_pos_invoice_journal_ids(self):
@@ -59,7 +74,7 @@ class StockWarehouse(models.Model):
 
     # --- NUEVAS FUNCIONES PARA auto_check_invoice ---
 
-    @api.depends('pos_config_id', 'pos_config_id.auto_check_invoice') # <-- AÑADIDO: Dependencia del campo original
+    @api.depends('pos_config_id', 'pos_config_id.auto_check_invoice') 
     def _compute_auto_check_invoice(self):
         """Obtiene el valor de auto_check_invoice del POS enlazado."""
         for warehouse in self:
@@ -75,3 +90,24 @@ class StockWarehouse(models.Model):
             if warehouse.pos_config_id:
                 # Escribimos el nuevo valor en el registro de pos.config
                 warehouse.pos_config_id.auto_check_invoice = warehouse.auto_check_invoice
+
+    # --- INICIO DE ADICIÓN DE FUNCIONES PARA default_partner_id ---
+
+    @api.depends('pos_config_id', 'pos_config_id.default_partner_id')
+    def _compute_default_partner_id(self):
+        """Obtiene el cliente predeterminado del POS enlazado."""
+        for warehouse in self:
+            # Si hay un POS configurado, toma su valor; si no, es False (o None).
+            warehouse.default_partner_id = warehouse.pos_config_id.default_partner_id if warehouse.pos_config_id else False
+
+    def _inverse_default_partner_id(self):
+        """
+        Función inversa: Cuando se edita default_partner_id en el almacén, 
+        se actualiza el campo original en el registro de pos.config.
+        """
+        for warehouse in self:
+            if warehouse.pos_config_id:
+                # Escribimos el nuevo valor del cliente en el registro de pos.config
+                warehouse.pos_config_id.default_partner_id = warehouse.default_partner_id
+
+    # --- FIN DE ADICIÓN DE FUNCIONES PARA default_partner_id ---
