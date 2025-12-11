@@ -10,16 +10,28 @@
             </xpath>
         </field>
     </record>
+
     <record id="view_warehouse_form_pos_invoice_journals" model="ir.ui.view">
         <field name="name">stock.warehouse.form.pos.invoice.journals</field>
         <field name="model">stock.warehouse</field>
         <field name="inherit_id" ref="stock.view_warehouse"/>
         <field name="arch" type="xml">
+            
             <field name="pos_config_id" position="after">
-                <field name="pos_invoice_journal_ids" widget="many2many_tags"/>
-                <field name="auto_check_invoice"/>
-                <field name="default_partner_id"/>
+                <field name="l10n_pe_edi_send_invoice" 
+                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
+
+                <field name="pos_invoice_journal_ids" 
+                       widget="many2many_tags" 
+                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
+
+                <field name="auto_check_invoice" 
+                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
+
+                <field name="default_partner_id" 
+                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
             </field>
+
         </field>
     </record>
 </odoo>

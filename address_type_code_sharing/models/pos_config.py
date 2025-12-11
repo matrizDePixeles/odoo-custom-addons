@@ -31,3 +31,13 @@ class PosConfig(models.Model):
         inverse_name='stock_warehouse_ids.default_partner_id',
         # No es necesario poner store=True, ni compute/inverse, ya que se heredan del original.
     )
+
+    # --- ADICIÓN DEL CAMPO l10n_pe_edi_send_invoice ---
+    
+    # Campo para Envío de Factura Electrónica (redefinido del campo original)
+    l10n_pe_edi_send_invoice = fields.Boolean(
+        # El string (etiqueta) se hereda, pero puedes redefinirlo si es necesario.
+        # IMPORTANTE: Añadir la dependencia inversa
+        inverse_name='stock_warehouse_ids.l10n_pe_edi_send_invoice',
+    )
+    # --- FIN DE ADICIÓN DEL CAMPO l10n_pe_edi_send_invoice ---

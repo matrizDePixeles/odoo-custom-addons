@@ -37,8 +37,7 @@ class StockWarehouse(models.Model):
         help='Si está marcado, las facturas generadas desde el POS asociado se validarán automáticamente.'
     )
 
-    # --- INICIO DE ADICIÓN PARA default_partner_id ---
-    
+    # --- CAMPO default_partner_id (CORREGIDO - Solo una definición) ---
     # Nuevo campo COMPUTADO y ALMACENABLE para el cliente predeterminado
     default_partner_id = fields.Many2one(
         'res.partner',
@@ -49,8 +48,18 @@ class StockWarehouse(models.Model):
         store=True,
         help='Establece el cliente predeterminado que se usará en el Punto de Venta asociado.'
     )
+    # --- FIN DE CAMPO default_partner_id ---
 
-    # --- FIN DE ADICIÓN PARA default_partner_id ---
+    # --- CAMPO l10n_pe_edi_send_invoice ---
+    l10n_pe_edi_send_invoice = fields.Boolean(
+        string='Enviar Factura Electrónica (POS)',
+        compute='_compute_l10n_pe_edi_send_invoice',
+        inverse='_inverse_l10n_pe_edi_send_invoice',
+        readonly=False,
+        store=True,
+        help='Si está marcado, las facturas generadas desde el POS asociado se marcarán para envío electrónico.'
+    )
+    # --- FIN DE CAMPO l10n_pe_edi_send_invoice ---
 
     @api.depends('pos_config_id', 'pos_config_id.invoice_journal_ids') 
     def _compute_pos_invoice_journal_ids(self):
@@ -91,7 +100,7 @@ class StockWarehouse(models.Model):
                 # Escribimos el nuevo valor en el registro de pos.config
                 warehouse.pos_config_id.auto_check_invoice = warehouse.auto_check_invoice
 
-    # --- INICIO DE ADICIÓN DE FUNCIONES PARA default_partner_id ---
+    # --- FUNCIONES PARA default_partner_id ---
 
     @api.depends('pos_config_id', 'pos_config_id.default_partner_id')
     def _compute_default_partner_id(self):
@@ -110,4 +119,21 @@ class StockWarehouse(models.Model):
                 # Escribimos el nuevo valor del cliente en el registro de pos.config
                 warehouse.pos_config_id.default_partner_id = warehouse.default_partner_id
 
-    # --- FIN DE ADICIÓN DE FUNCIONES PARA default_partner_id ---
+    # --- FUNCIONES PARA l10n_pe_edi_send_invoice ---
+
+    @api.depends('pos_config_id', 'pos_config_id.l10n_pe_edi_send_invoice')
+    def _compute_l10n_pe_edi_send_invoice(self):
+        """Obtiene el valor de envío de factura electrónica del POS enlazado."""
+        for warehouse in self:
+            # Si hay un POS configurado, toma su valor; si no, es False.
+            warehouse.l10n_pe_edi_send_invoice = warehouse.pos_config_id.l10n_pe_edi_send_invoice if warehouse.pos_config_id else False
+
+    def _inverse_l10n_pe_edi_send_invoice(self):
+        """
+        Función inversa: Cuando se edita l10n_pe_edi_send_invoice en el almacén, 
+        se actualiza el campo original en el registro de pos.config.
+        """
+        for warehouse in self:
+            if warehouse.pos_config_id:
+                # Escribimos el nuevo valor en el registro de pos.config
+                warehouse.pos_config_id.l10n_pe_edi_send_invoice = warehouse.l10n_pe_edi_send_invoice
