@@ -51,26 +51,38 @@ class AccountMove(models.Model):
                 move.associated_warehouse_id = False
 
     def action_post(self):
-        if not self or not self[0].associated_warehouse_id:
-            return super(AccountMove, self).action_post()
-
-        company = self[0].company_id
-        warehouse = self[0].associated_warehouse_id
+        # Aseguramos que la lógica de bloqueo se ejecute por factura
+        self.ensure_one()
         
-        if not company or not warehouse:
-            return super(AccountMove, self).action_post()
-
-        # 1. Guardar copia
-        original_address_code = company.l10n_pe_edi_address_type_code
-        new_address_code = warehouse.l10n_pe_edi_address_type_code
+        warehouse = self.associated_warehouse_id
+        company = self.company_id
         
-        # 2. Sustituir valor (Pre-confirmación)
-        company.l10n_pe_edi_address_type_code = new_address_code
-
-        # 3. Ejecutar el proceso estándar
-        res = super(AccountMove, self).action_post()
+        # Validar si falta información clave
+        if not warehouse or not company:
+            return super().action_post()
         
-        # 4. Restaurar valor (Post-confirmación)
-        company.l10n_pe_edi_address_type_code = original_address_code
+        # --- INICIO DEL BLOQUEO Y LA COLA (CORREGIDO PARA ODOO 14.0) ---
+        
+        # Bloquea el registro de la compañía (FOR UPDATE) usando el cursor de la DB.
+        # Si otro usuario ya lo tiene bloqueado, la ejecución se detiene aquí.
+        # Esta es la forma más robusta que evita el AttributeError y el TypeError.
+        self.env.cr.execute(
+            "SELECT id FROM res_company WHERE id = %s FOR UPDATE", 
+            [company.id]
+        )
+        
+        # Guardar el valor original ANTES de la modificación
+        original_code = company.l10n_pe_edi_address_type_code
+        
+        try:
+            # [1] PRE-CONFIRMACIÓN: Sustituir valor en DB
+            company.l10n_pe_edi_address_type_code = warehouse.l10n_pe_edi_address_type_code
             
+            # [2] EJECUCIÓN: Llama al método estándar
+            res = super().action_post()
+            
+        finally:
+            # [3] POST-CONFIRMACIÓN: Restaurar el valor original SIEMPRE
+            company.l10n_pe_edi_address_type_code = original_code
+        
         return res
