@@ -7,7 +7,7 @@
         Este modulo <field name="l10n_pe_edi_address_type_code"/>.
     """,
     'author': 'Ezequiel Manaure',
-    'depends': ['stock', 'point_of_sale', 'facturaclic_pe_pos', 'facturaclic_pe_server'],
+    'depends': ['account','stock', 'point_of_sale', 'facturaclic_pe_pos', 'facturaclic_pe_server'],
     'data': [
         'views/view_warehouse_inherit_move_field.xml',
     ],
