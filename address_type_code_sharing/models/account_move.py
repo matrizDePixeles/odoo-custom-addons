@@ -51,38 +51,22 @@ class AccountMove(models.Model):
                 move.associated_warehouse_id = False
 
     def action_post(self):
-        # Aseguramos que la lógica de bloqueo se ejecute por factura
         self.ensure_one()
-        
-        warehouse = self.associated_warehouse_id
+    
         company = self.company_id
-        
-        # Validar si falta información clave
-        if not warehouse or not company:
+        warehouse = self.associated_warehouse_id
+        new_code = warehouse.l10n_pe_edi_address_type_code if warehouse else False
+    
+        if not company or not new_code:
             return super().action_post()
-        
-        # --- INICIO DEL BLOQUEO Y LA COLA (CORREGIDO PARA ODOO 14.0) ---
-        
-        # Bloquea el registro de la compañía (FOR UPDATE) usando el cursor de la DB.
-        # Si otro usuario ya lo tiene bloqueado, la ejecución se detiene aquí.
-        # Esta es la forma más robusta que evita el AttributeError y el TypeError.
-        self.env.cr.execute(
-            "SELECT id FROM res_company WHERE id = %s FOR UPDATE", 
-            [company.id]
-        )
-        
-        # Guardar el valor original ANTES de la modificación
+    
+        # Bloqueo explícito
+        self.env.cr.execute("SELECT id FROM res_company WHERE id = %s FOR UPDATE", [company.id])
+    
         original_code = company.l10n_pe_edi_address_type_code
-        
         try:
-            # [1] PRE-CONFIRMACIÓN: Sustituir valor en DB
-            company.l10n_pe_edi_address_type_code = warehouse.l10n_pe_edi_address_type_code
-            
-            # [2] EJECUCIÓN: Llama al método estándar
-            res = super().action_post()
-            
+            company.l10n_pe_edi_address_type_code = new_code
+            return super().action_post()
         finally:
-            # [3] POST-CONFIRMACIÓN: Restaurar el valor original SIEMPRE
             company.l10n_pe_edi_address_type_code = original_code
-        
-        return res
+
