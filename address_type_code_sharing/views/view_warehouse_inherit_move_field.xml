@@ -1,37 +1,44 @@
 <odoo>
-    <record id="view_warehouse_extend_edi_address_type" model="ir.ui.view">
-        <field name="name">stock.warehouse.form.l10n.pe.edi.address</field>
+    <record id="view_warehouse_extend_unified_grouped" model="ir.ui.view">
+        <field name="name">stock.warehouse.form.l10n.pe.edi.address.pos.invoice.journals.unified.grouped</field>
         <field name="model">stock.warehouse</field>
         <field name="inherit_id" ref="stock.view_warehouse"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='partner_id']" position="after">
+            <xpath expr="//field[@name='partner_id']/.." position="inside">
                 <field name="l10n_pe_edi_address_type_code"/>
-                <field name="pos_config_id"/>
+                <field name="pos_invoice_journal_ids" widget="many2many_tags" domain="[('company_id', '=', company_id), ('type', '=', 'sale')]" context="{'default_company_id': company_id, 'default_type': 'sale'}"/>
+                <field name="default_partner_id"/>
             </xpath>
         </field>
     </record>
-
-    <record id="view_warehouse_form_pos_invoice_journals" model="ir.ui.view">
-        <field name="name">stock.warehouse.form.pos.invoice.journals</field>
-        <field name="model">stock.warehouse</field>
-        <field name="inherit_id" ref="stock.view_warehouse"/>
+    <record id="view_move_form_with_warehouse_id_reference" model="ir.ui.view">
+        <field name="name">account.move.warehouse</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//group[@id='header_right_group']//label[@for='journal_id']" position="before">
+                <label for="warehouse_id"/>
             
-            <field name="pos_config_id" position="after">
-                <field name="l10n_pe_edi_send_invoice" 
-                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
-
-                <field name="pos_invoice_journal_ids" 
-                       widget="many2many_tags" 
-                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
-
-                <field name="auto_check_invoice" 
-                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
-
-                <field name="default_partner_id" 
-                       attrs="{'invisible': [('pos_config_id', '=', False)]}"/>
-            </field>
-
+                <div name="warehouse_id_div" class="d-flex">
+                    <field name="warehouse_id" 
+                       options="{'no_create': True}" 
+                       attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                </div>
+            </xpath>
         </field>
     </record>
+    <record id="view_move_form_restrict_journal_by_warehouse" model="ir.ui.view">
+        <field name="name">account.move.journal.restriction</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='journal_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', allowed_journal_ids)]</attribute>
+            </xpath>
+        
+            <xpath expr="//field[@name='warehouse_id']" position="attributes">
+                <attribute name="on_change">1</attribute>
+            </xpath>
+    </field>
+</record>
 </odoo>
