@@ -7,48 +7,44 @@ class AccountMove(models.Model):
     associated_warehouse_id = fields.Many2one(
         'stock.warehouse',
         string='Almacén Asociado',
-        compute='_compute_warehouse_from_journal',
+        compute='_compute_associated_warehouse',
         store=True,  # Para que se guarde en la BD y se pueda consultar
         readonly=True,
     )
 
-    @api.depends('journal_id')
-    def _compute_warehouse_from_journal(self):
+    @api.depends('journal_id', 'invoice_origin') # Añadir 'invoice_origin'
+    def _compute_associated_warehouse(self):
         """
-        Busca el almacén asociado al diario de la factura
-        a través de los campos pos_invoice_journal_ids en stock.warehouse.
+        Busca el almacén asociado con la siguiente prioridad:
+        1. Almacén del Sale Order asociado (usando invoice_origin).
+        2. Almacén asociado al diario (lógica existente).
         """
-        # Obtenemos todos los almacenes que tienen el journal_id actual en su pos_invoice_journal_ids
-        # Usamos self.env['stock.warehouse'].search para buscar en el modelo stock.warehouse
-        
-        # Preparamos una lista de IDs de diarios de las facturas actuales
-        journal_ids = self.mapped('journal_id').ids
-        
-        if not journal_ids:
-            for move in self:
-                move.associated_warehouse_id = False
-            return
-
-        # Buscamos todos los almacenes que contengan alguno de los diarios de las facturas
-        # {'pos_invoice_journal_ids': [('in', journal_ids)]} es una búsqueda relacional
-        warehouses = self.env['stock.warehouse'].search([
-            ('pos_invoice_journal_ids', 'in', journal_ids)
-        ])
-
-        # Creamos un mapeo rápido de {journal_id: warehouse_id}
-        # Solo asignamos el primer almacén encontrado para cada diario (como pediste: "hallar la primera coincidencia")
-        journal_to_warehouse = {}
-        for warehouse in warehouses:
-            for journal in warehouse.pos_invoice_journal_ids:
-                if journal.id in journal_ids and journal.id not in journal_to_warehouse:
-                    journal_to_warehouse[journal.id] = warehouse.id
-                    
-        # Asignamos el valor a cada factura
         for move in self:
-            if move.journal_id.id in journal_to_warehouse:
-                move.associated_warehouse_id = journal_to_warehouse[move.journal_id.id]
-            else:
-                move.associated_warehouse_id = False
+            warehouse = False # Almacén que vamos a asignar
+
+            # --- PRIORIDAD 1: Buscar por Sale Order asociado (invoice_origin) ---
+            if move.invoice_origin:
+                # Buscamos el pedido de venta (sale.order)
+                sale_order = self.env['sale.order'].search([
+                    ('name', '=', move.invoice_origin),
+                    ('company_id', '=', move.company_id.id)
+                ], limit=1)
+                
+                if sale_order and sale_order.warehouse_id:
+                    warehouse = sale_order.warehouse_id.id
+            
+            # --- PRIORIDAD 2: Fallback a la lógica de búsqueda por Diario (journal_id) ---
+            if not warehouse and move.journal_id:
+                # Obtenemos todos los almacenes que tienen el journal_id actual en su pos_invoice_journal_ids
+                warehouses = self.env['stock.warehouse'].search([
+                    ('pos_invoice_journal_ids', 'in', move.journal_id.id)
+                ], limit=1) # Limitamos a 1 para tomar el primero que coincida
+                
+                if warehouses:
+                    warehouse = warehouses.id
+            
+            # Asignamos el valor final (o False si no se encontró nada)
+            move.associated_warehouse_id = warehouse
 
     def action_post(self):
         self.ensure_one()
