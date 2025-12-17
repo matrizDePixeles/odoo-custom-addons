@@ -24,7 +24,18 @@
                     <field name="associated_warehouse_id" readonly="1"/>
                 </div>
             </xpath>
-            
+            <xpath expr="//field[@name='journal_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', list_id_de_tus_diarios_filtrados)]</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='journal_id']" position="before">
+                <field name="suitable_journal_ids" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//field[@name='journal_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', suitable_journal_ids)]</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+            </xpath>
         </field>
     </record>
     

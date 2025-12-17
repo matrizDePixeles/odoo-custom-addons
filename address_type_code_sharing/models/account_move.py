@@ -66,3 +66,21 @@ class AccountMove(models.Model):
         finally:
             company.l10n_pe_edi_address_type_code = original_code
 
+# Campo técnico para filtrar los diarios en la vista
+    suitable_journal_ids = fields.Many2many(
+        'account.journal', 
+        compute='_compute_suitable_journal_ids'
+    )
+
+    @api.depends('associated_warehouse_id')
+    def _compute_suitable_journal_ids(self):
+        for move in self:
+            if move.associated_warehouse_id and move.associated_warehouse_id.pos_invoice_journal_ids:
+                # Si hay un almacén con diarios configurados, usamos esos
+                move.suitable_journal_ids = move.associated_warehouse_id.pos_invoice_journal_ids.ids
+            else:
+                # Si no hay almacén, permitimos todos los diarios de venta de la compañía
+                move.suitable_journal_ids = self.env['account.journal'].search([
+                    ('type', '=', 'sale'),
+                    ('company_id', '=', move.company_id.id)
+                ]).ids
