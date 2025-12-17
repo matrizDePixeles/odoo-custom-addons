@@ -46,6 +46,13 @@ class AccountMove(models.Model):
             # Asignamos el valor final (o False si no se encontró nada)
             move.associated_warehouse_id = warehouse
 
+        for move in self:
+            if move.associated_warehouse_id and move.associated_warehouse_id.pos_invoice_journal_ids:
+                # Tomamos el primer diario de la lista configurada en el almacén
+                first_journal = move.associated_warehouse_id.pos_invoice_journal_ids[0]
+                move.journal_id = first_journal.id
+
+
     def action_post(self):
         self.ensure_one()
     
@@ -84,3 +91,15 @@ class AccountMove(models.Model):
                     ('type', '=', 'sale'),
                     ('company_id', '=', move.company_id.id)
                 ]).ids
+
+    @api.onchange('associated_warehouse_id')
+    def _onchange_associated_warehouse_id(self):
+        """
+        Al cambiar el almacén, selecciona automáticamente el primer diario
+        disponible en la configuración de dicho almacén.
+        """
+        for move in self:
+            if move.associated_warehouse_id and move.associated_warehouse_id.pos_invoice_journal_ids:
+                # Tomamos el primer diario de la lista configurada en el almacén
+                first_journal = move.associated_warehouse_id.pos_invoice_journal_ids[0]
+                move.journal_id = first_journal.id
