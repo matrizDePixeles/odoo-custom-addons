@@ -1,105 +1,58 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError  # usa la excepción correcta
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    # Campo calculado y de solo lectura para el almacén asociado
     associated_warehouse_id = fields.Many2one(
         'stock.warehouse',
         string='Almacén Asociado',
-        compute='_compute_associated_warehouse',
-        store=True,  # Para que se guarde en la BD y se pueda consultar
-        readonly=True,
+        help='Selecciona el almacén para limitar los diarios disponibles.'
     )
 
-    @api.depends('journal_id', 'invoice_origin') # Añadir 'invoice_origin'
-    def _compute_associated_warehouse(self):
-        """
-        Busca el almacén asociado con la siguiente prioridad:
-        1. Almacén del Sale Order asociado (usando invoice_origin).
-        2. Almacén asociado al diario (lógica existente).
-        """
-        for move in self:
-            warehouse = False # Almacén que vamos a asignar
-
-            # --- PRIORIDAD 1: Buscar por Sale Order asociado (invoice_origin) ---
-            if move.invoice_origin:
-                # Buscamos el pedido de venta (sale.order)
-                sale_order = self.env['sale.order'].search([
-                    ('name', '=', move.invoice_origin),
-                    ('company_id', '=', move.company_id.id)
-                ], limit=1)
-                
-                if sale_order and sale_order.warehouse_id:
-                    warehouse = sale_order.warehouse_id.id
-            
-            # --- PRIORIDAD 2: Fallback a la lógica de búsqueda por Diario (journal_id) ---
-            if not warehouse and move.journal_id:
-                # Obtenemos todos los almacenes que tienen el journal_id actual en su pos_invoice_journal_ids
-                warehouses = self.env['stock.warehouse'].search([
-                    ('pos_invoice_journal_ids', 'in', move.journal_id.id)
-                ], limit=1) # Limitamos a 1 para tomar el primero que coincida
-                
-                if warehouses:
-                    warehouse = warehouses.id
-            
-            # Asignamos el valor final (o False si no se encontró nada)
-            move.associated_warehouse_id = warehouse
-
-        for move in self:
-            if move.associated_warehouse_id and move.associated_warehouse_id.pos_invoice_journal_ids:
-                # Tomamos el primer diario de la lista configurada en el almacén
-                first_journal = move.associated_warehouse_id.pos_invoice_journal_ids[0]
-                move.journal_id = first_journal.id
-
-
-    def action_post(self):
-        self.ensure_one()
-    
-        company = self.company_id
-        warehouse = self.associated_warehouse_id
-        new_code = warehouse.l10n_pe_edi_address_type_code if warehouse else False
-    
-        if not company or not new_code:
-            return super().action_post()
-    
-        # Bloqueo explícito
-        self.env.cr.execute("SELECT id FROM res_company WHERE id = %s FOR UPDATE", [company.id])
-    
-        original_code = company.l10n_pe_edi_address_type_code
-        try:
-            company.l10n_pe_edi_address_type_code = new_code
-            return super().action_post()
-        finally:
-            company.l10n_pe_edi_address_type_code = original_code
-
-# Campo técnico para filtrar los diarios en la vista
     suitable_journal_ids = fields.Many2many(
-        'account.journal', 
-        compute='_compute_suitable_journal_ids'
+        'account.journal',
+        compute='_compute_suitable_journal_ids',
+        string='Diarios Permitidos'
     )
 
     @api.depends('associated_warehouse_id')
     def _compute_suitable_journal_ids(self):
+        AccountJournal = self.env['account.journal']
+        empty = AccountJournal.browse([])
         for move in self:
-            if move.associated_warehouse_id and move.associated_warehouse_id.pos_invoice_journal_ids:
-                # Si hay un almacén con diarios configurados, usamos esos
-                move.suitable_journal_ids = move.associated_warehouse_id.pos_invoice_journal_ids.ids
-            else:
-                # Si no hay almacén, permitimos todos los diarios de venta de la compañía
-                move.suitable_journal_ids = self.env['account.journal'].search([
-                    ('type', '=', 'sale'),
-                    ('company_id', '=', move.company_id.id)
-                ]).ids
+            wh = move.associated_warehouse_id
+            move.suitable_journal_ids = wh.pos_invoice_journal_ids if (wh and wh.pos_invoice_journal_ids) else empty
+
+    @api.constrains('journal_id', 'associated_warehouse_id')
+    def _check_journal_in_allowed(self):
+        for move in self:
+            if move.associated_warehouse_id:
+                allowed = move.associated_warehouse_id.pos_invoice_journal_ids
+                if move.journal_id and move.journal_id not in allowed:
+                    raise ValidationError("El diario seleccionado no está permitido para el almacén asociado.")
+
+    @api.constrains('associated_warehouse_id')
+    def _check_warehouse_has_journals(self):
+        for move in self:
+            if move.associated_warehouse_id and not move.associated_warehouse_id.pos_invoice_journal_ids:
+                raise ValidationError("El almacén seleccionado no tiene diarios configurados. Configura al menos uno en el almacén.")
 
     @api.onchange('associated_warehouse_id')
     def _onchange_associated_warehouse_id(self):
-        """
-        Al cambiar el almacén, selecciona automáticamente el primer diario
-        disponible en la configuración de dicho almacén.
-        """
-        for move in self:
-            if move.associated_warehouse_id and move.associated_warehouse_id.pos_invoice_journal_ids:
-                # Tomamos el primer diario de la lista configurada en el almacén
-                first_journal = move.associated_warehouse_id.pos_invoice_journal_ids[0]
-                move.journal_id = first_journal.id
+        wh = self.associated_warehouse_id
+        if not wh:
+            return
+        journals = wh.pos_invoice_journal_ids.filtered(lambda j: j.company_id == self.company_id)
+        if journals:
+            self.journal_id = journals[0].id
+        else:
+            self.journal_id = False
+            return {
+                'warning': {
+                    'title': "Almacén sin diarios válidos",
+                    'message': "El almacén no tiene diarios de venta para la compañía del documento.",
+                    'type': 'notification'
+                }
+            }
+
