@@ -1,5 +1,5 @@
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError  # usa la excepción correcta
+from odoo.exceptions import ValidationError
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
@@ -37,6 +37,12 @@ class AccountMove(models.Model):
         for move in self:
             if move.associated_warehouse_id and not move.associated_warehouse_id.pos_invoice_journal_ids:
                 raise ValidationError("El almacén seleccionado no tiene diarios configurados. Configura al menos uno en el almacén.")
+
+    @api.constrains('associated_warehouse_id')
+    def _check_warehouse_required(self):
+        for move in self:
+            if not move.associated_warehouse_id:
+                raise ValidationError("Debe seleccionar un almacén asociado antes de guardar el documento.")
 
     @api.onchange('associated_warehouse_id')
     def _onchange_associated_warehouse_id(self):
